@@ -1,3 +1,27 @@
+/**
+ * @fileoverview Article Controller
+ * 
+ * Manages all article-related operations including:
+ * - CRUD operations (Create, Read, Update, Delete articles)
+ * - Article workflow (draft → validation → publication)
+ * - Article search and filtering with pagination
+ * - Article blocks and pinning for homepage layout
+ * - Article locking mechanism for concurrent editing prevention
+ * - Multi-language article support
+ * 
+ * Articles go through an editorial workflow:
+ * 1. Draft - Created by Rédacteur
+ * 2. Validation - Validated by Chef de vacation
+ * 3. Published - Published by Rédacteur en chef
+ * 
+ * @module controllers/articleController
+ * @requires ../middlewares/errorMiddleware
+ * @requires ../services/articleService
+ * @requires ../utils/logger
+ * @requires ../utils/tryCatch
+ * @requires ../validations/articleValidation
+ */
+
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
 import { ValidationError } from "../middlewares/errorMiddleware.js";
 import {
@@ -35,10 +59,19 @@ import {
   updateArticleSchema,
 } from "../validations/articleValidation.js";
 
-// Logger instance for logging image-related actions
+// Logger instance for logging article-related actions
 const logger = infoLogger("articles");
 
-// Custom log function to format log messages with request details and action
+/**
+ * Creates a custom log entry with request context for article actions
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} options - Additional logging options
+ * @param {string} [options.message] - Custom log message
+ * @param {string} [options.action] - Action being logged
+ * @param {Error} [options.err] - Error object if applicable
+ * @returns {Object} Enhanced log entry with custom fields
+ */
 const customLog = (req, options = {}) => {
   const { message, action, err } = options;
 
