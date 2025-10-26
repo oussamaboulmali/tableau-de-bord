@@ -1,0 +1,663 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model aps2024_configuration {
+  id_conf          Int   @id @default(autoincrement())
+  name         String   @unique
+  display      String?
+  description String?
+  is_active    Boolean  @default(true)
+  activated_date        DateTime?           @db.Timestamptz(3)
+  desactivated_date  DateTime?           @db.Timestamptz(3)
+  
+  activated_by     String?   
+  desactivated_by   String?   
+}
+
+model aps2024_archive {
+  id_archive        BigInt   @id @default(autoincrement())
+  id_article        BigInt           
+  url               String?
+  categorie         String
+  subCategorie      String?
+  title             String
+  alias             String   @unique
+  introtext         String
+  fulltext          String
+  supTitle          String?
+  publish_date      DateTime @db.Timestamptz(3)
+  tags              Json?
+  views       Int  
+}
+
+model aps2024_article_dossier {
+  id_article       BigInt
+  id_dossier       BigInt
+  aps2024_articles aps2024_articles @relation(fields: [id_article], references: [id_article], onDelete: Cascade, onUpdate: NoAction)
+  aps2024_dossiers aps2024_dossiers @relation(fields: [id_dossier], references: [id_dossier], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_article, id_dossier])
+}
+
+model aps2024_article_tag {
+  id_article       BigInt
+  id_tag           BigInt
+  assigned_by      String
+  assigned_date    DateTime         @default(now()) @db.Timestamptz(3)
+  aps2024_articles aps2024_articles @relation(fields: [id_article], references: [id_article], onDelete: Cascade, onUpdate: NoAction)
+  aps2024_tag      aps2024_tag      @relation(fields: [id_tag], references: [id_tag], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_article, id_tag])
+}
+
+model aps2024_article_translated {
+  id_lien           BigInt            @id @default(autoincrement())
+  id_article        BigInt
+  url               String
+  id_lang           Int
+  created_date      DateTime          @default(now()) @db.Timestamptz(3)
+  created_by        String
+  modified_date     DateTime?         @db.Timestamptz(3)
+  modified_by       String?
+  aps2024_articles  aps2024_articles  @relation(fields: [id_article], references: [id_article], onDelete: Cascade, onUpdate: NoAction)
+  aps2024_languages aps2024_languages @relation(fields: [id_lang], references: [id_lang], onUpdate: NoAction)
+
+  @@unique([id_article, id_lang])
+}
+
+model aps2024_languages {
+  id_lang            Int                          @id @default(autoincrement())
+  code               String
+  label              String
+  article_translated aps2024_article_translated[]
+}
+
+model aps2024_articles {
+  id_article                             BigInt                             @id @default(autoincrement())
+  id_image                               BigInt?
+  id_gallery                             BigInt?                           
+  id_session                             BigInt
+  id_categorie                           Int
+  id_subCategorie                        Int?
+  alias                                  String                             @unique
+  is_publish                             Boolean                            @default(false)
+  supTitle                               String?
+  introtext                              String
+  fulltext                               String?
+  modified_by                            String?
+  modified_date                          DateTime?                          @db.Timestamptz(3)
+  publish_by                             String?
+  unpublish_by                           String?
+  validate_date                          DateTime?                          @db.Timestamptz(3)
+  publish_date                           DateTime?                          @db.Timestamptz(3)
+  publish_down                           DateTime?                          @db.Timestamptz(3)
+  is_programmed                          Boolean                            @default(false)
+  is_protected                           Boolean                            @default(false)
+  is_pinned                              Boolean                            @default(false)
+  is_trash                               Boolean                            @default(false)
+  is_locked                              Boolean                            @default(false)
+  locked_date                            DateTime?                          @db.Timestamptz(3)
+  locked_by                              String?
+  created_by                             String
+  trash_by                               String?
+  lien_vedio                             String?
+  title                                  String
+  is_validated                           Boolean                            @default(false)
+  created_date                           DateTime                           @default(now()) @db.Timestamptz(3)
+  id_user                                Int
+  is_souverainete                        Boolean                            @default(false)
+  id_block                               Int?
+  views                                  Int                                @default(0)
+  aps2024_article_dossier                aps2024_article_dossier[]
+  aps2024_article_tag                    aps2024_article_tag[]
+  aps2024_article_translated             aps2024_article_translated[]
+  aps2024_blocks                         aps2024_blocks?                    @relation(fields: [id_block], references: [id_block], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_categories                     aps2024_categories                 @relation(fields: [id_categorie], references: [id_categorie], onDelete: NoAction, onUpdate: NoAction, map: "aps2024_articles_id_categorie_foreign")
+  aps2024_gallery                        aps2024_gallery?                   @relation(fields: [id_gallery], references: [id_gallery], onUpdate: NoAction)
+  aps2024_images                         aps2024_images?                    @relation(fields: [id_image], references: [id_image], onDelete: Restrict, onUpdate: NoAction)
+  aps2024_subCategories                  aps2024_subCategories?             @relation(fields: [id_subCategorie], references: [id_subCategorie], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_users                          aps2024_users                      @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_block_position                 aps2024_block_position?            @relation("already id_article  pinned")
+  aps2024_block_position_actualites      aps2024_block_position_actualites? @relation("already id_article  pinned")
+
+  @@index([is_publish, id_block, publish_date(sort: Desc)])
+  @@index([id_categorie, id_subCategorie, is_publish, is_pinned, publish_date(sort: Desc)])
+  @@index([is_publish, publish_date(sort: Desc)])
+  @@index([id_block, is_pinned, is_publish])
+}
+
+model aps2024_blocks {
+  id_block                          Int                                 @id @default(autoincrement())
+  /// Example: "Block 1", "Block 2", etc.
+  name                              String
+  /// Number of positions in the block (e.g., 3, 4)
+  max_positions                     Int
+  aps2024_articles                  aps2024_articles[]
+  aps2024_block_position            aps2024_block_position[]
+  aps2024_block_position_actualites aps2024_block_position_actualites[]
+}
+
+model aps2024_block_position {
+  id_blocPosition      Int               @id @default(autoincrement())
+  id_block             Int
+  position             Int
+  id_article           BigInt?           @unique
+
+  aps2024_articles     aps2024_articles? @relation("already id_article  pinned", fields: [id_article], references: [id_article], map: "aps2024_articles")
+  aps2024_blocks       aps2024_blocks    @relation(fields: [id_block], references: [id_block])
+
+  @@unique([id_block, position])
+   @@index([id_block, position])
+}
+
+model aps2024_block_position_actualites {
+  id_block_position_actualites Int                    @id @default(autoincrement())
+  id_block                     Int
+  id_categorie                 Int
+  id_subCategorie              Int?
+  position                     Int
+  id_article                   BigInt?                @unique
+  aps2024_articles             aps2024_articles?      @relation("already id_article  pinned", fields: [id_article], references: [id_article], map: "aps2024_articles")
+  aps2024_blocks               aps2024_blocks         @relation(fields: [id_block], references: [id_block])
+  aps2024_categories           aps2024_categories     @relation(fields: [id_categorie], references: [id_categorie])
+  aps2024_subCategories        aps2024_subCategories? @relation(fields: [id_subCategorie], references: [id_subCategorie])
+
+  @@unique([id_block, position, id_categorie, id_subCategorie])
+  @@index([id_block, id_categorie, id_subCategorie, position])
+}
+
+model aps2024_videos {
+  id_video       BigInt         @id @default(autoincrement())
+  id_image       BigInt
+  id_session     BigInt
+  id_user        Int
+  alias          String         @unique
+  lien_video     String
+  name           String
+  is_publish     Boolean        @default(false)
+  is_main        Boolean        @default(false)
+  description    String
+  created_by     String
+  created_date   DateTime       @default(now()) @db.Timestamptz(3)
+  modified_by    String?
+  modified_date  DateTime?      @db.Timestamptz(3)
+  publish_by     String?
+  unpublish_by   String?
+  publish_date   DateTime?      @db.Timestamptz(3)
+  publish_down   DateTime?      @db.Timestamptz(3)
+  /// Position to be assigned when published
+  next_position  Int?           @unique
+  /// Current pinned position (only for published videos)
+  position       Int?           @unique
+  views                                  Int                                @default(0)
+  aps2024_images aps2024_images @relation(fields: [id_image], references: [id_image], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_users  aps2024_users  @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([is_publish, is_main])
+  @@index([is_publish, is_main, position])
+  @@index([is_publish, is_main, publish_date(sort: Desc)])
+}
+
+model aps2024_infographies {
+  id_infographie BigInt         @id @default(autoincrement())
+  id_image       BigInt
+  id_session     BigInt
+  id_user        Int
+  alias          String         @unique
+  name           String
+  is_publish     Boolean        @default(false)
+  description    String
+  created_by     String
+  created_date   DateTime       @default(now()) @db.Timestamptz(3)
+  modified_by    String?
+  modified_date  DateTime?      @db.Timestamptz(3)
+  publish_by     String?
+  unpublish_by   String?
+  publish_date   DateTime?      @db.Timestamptz(3)
+  publish_down   DateTime?      @db.Timestamptz(3)
+  views                                  Int                                @default(0)
+  aps2024_images aps2024_images @relation(fields: [id_image], references: [id_image], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_users  aps2024_users  @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  @@index([is_publish, publish_date(sort: Desc)])
+}
+
+model aps2024_cahiers_aps {
+  id_cahier      BigInt         @id @default(autoincrement())
+  id_session     BigInt
+  id_user        Int
+  alias          String         @unique
+  name           String
+  is_publish     Boolean        @default(false)
+  description    String
+  created_by     String
+  created_date   DateTime       @default(now()) @db.Timestamptz(3)
+  modified_by    String?
+  modified_date  DateTime?      @db.Timestamptz(3)
+  publish_by     String?
+  unpublish_by   String?
+  publish_date   DateTime?      @db.Timestamptz(3)
+  publish_down   DateTime?      @db.Timestamptz(3)
+  views                                  Int                                @default(0)
+  aps2024_images aps2024_images []
+  aps2024_users  aps2024_users  @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  @@index([is_publish, publish_date(sort: Desc)])
+
+}
+
+model aps2024_categories {
+  id_categorie                      Int                                 @id @default(autoincrement())
+  id_session                        BigInt
+  name                              String                              @unique
+  alias                             String                              @unique
+  created_date                      DateTime                            @default(now()) @db.Timestamptz(3)
+  modified_date                     DateTime?                           @db.Timestamptz(3)
+  modified_by                       String?
+  created_by                        String
+  change_state_by                   String?
+  change_state_date                 DateTime?                           @db.Timestamptz(3)
+  state                             Boolean                             @default(false)
+  id_user                           Int
+  aps2024_articles                  aps2024_articles[]
+  aps2024_banner_categories         aps2024_banner_categories[]
+  aps2024_block_position_actualites aps2024_block_position_actualites[]
+  aps2024_users                     aps2024_users                       @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_defaultCategorie          aps2024_defaultCategorie[]
+  aps2024_subCategories             aps2024_subCategories[]
+
+  @@index([state])
+}
+
+model aps2024_subCategories {
+  id_subCategorie                   Int                                 @id @default(autoincrement())
+  id_user                           Int
+  id_categorie                      Int
+  id_session                        BigInt
+  name                              String                              @unique
+  alias                             String                              @unique
+  created_date                      DateTime                            @default(now()) @db.Timestamptz(3)
+  modified_date                     DateTime?                           @db.Timestamptz(3)
+  modified_by                       String?
+  created_by                        String
+  change_state_by                   String?
+  change_state_date                 DateTime?                           @db.Timestamptz(3)
+  state                             Boolean                             @default(false)
+  aps2024_articles                  aps2024_articles[]
+  aps2024_block_position_actualites aps2024_block_position_actualites[]
+  aps2024_defaultCategorie          aps2024_defaultCategorie[]
+  aps2024_categories                aps2024_categories                  @relation(fields: [id_categorie], references: [id_categorie], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_users                     aps2024_users                       @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([state, id_categorie])
+}
+
+model aps2024_defaultCategorie {
+  id_defaultCategorie   Int                    @id @default(autoincrement())
+  id_categorie          Int
+  id_subCategorie       Int?
+  modified_by           String
+  /// Timestamp of last modification
+  modified_date         DateTime               @default(now())
+  aps2024_categories    aps2024_categories     @relation(fields: [id_categorie], references: [id_categorie])
+  aps2024_subCategories aps2024_subCategories? @relation(fields: [id_subCategorie], references: [id_subCategorie])
+
+  @@unique([id_categorie, id_subCategorie])
+}
+
+model aps2024_dossiers {
+  id_dossier              BigInt                    @id @default(autoincrement())
+  id_session              BigInt
+  id_image                BigInt
+  name                    String
+  is_publish              Boolean                   @default(false)
+  created_date            DateTime                  @default(now()) @db.Timestamptz(3)
+  created_by              String
+  modified_date           DateTime?                 @db.Timestamptz(3)
+  publish_date            DateTime?                 @db.Timestamptz(3)
+  publish_down            DateTime?                 @db.Timestamptz(3)
+  modified_by             String?
+  publish_by              String?
+  unpublish_by            String?
+  id_user                 Int
+  alias                   String                    @unique
+  description             String
+  views                                  Int                                @default(0)
+  aps2024_article_dossier aps2024_article_dossier[]
+  aps2024_images          aps2024_images            @relation(fields: [id_image], references: [id_image], onDelete: NoAction, onUpdate: NoAction, map: "aps2024_dossiers_id_image_foreign")
+  aps2024_users           aps2024_users             @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  @@index([is_publish, publish_date(sort: Desc)])
+}
+
+model aps2024_banners {
+  id_banner                 BigInt                      @id @default(autoincrement())
+  id_session                BigInt
+  click_url                 String
+  is_publish                Boolean                     @default(false)
+  created_date              DateTime                    @default(now()) @db.Timestamptz(3)
+  modified_date             DateTime?                   @db.Timestamptz(3)
+  modified_by               String?
+  publish_date              DateTime?                   @db.Timestamptz(3)
+  publish_down              DateTime?                   @db.Timestamptz(3)
+  is_programmed             Boolean                     @default(false)
+  created_by                String
+  publish_by                String?
+  unpublish_by              String?
+  id_image                  BigInt
+  name                      String
+  id_user                   Int
+  /// Banner placement fields
+  /// Position on homepage (1-4), null if not on homepage
+  position                  Int?
+  views                                  Int                                @default(0)
+  aps2024_banner_categories aps2024_banner_categories[]
+  aps2024_images            aps2024_images              @relation(fields: [id_image], references: [id_image], onDelete: NoAction, onUpdate: NoAction, map: "aps2024_banners_id_image_foreign")
+  aps2024_users             aps2024_users               @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([is_publish, is_programmed, position, publish_date(sort: Desc)])
+  @@index([position, is_publish])
+}
+
+/// Banner-Category Association (joining table)
+model aps2024_banner_categories {
+  id_banner          BigInt
+  id_categorie       Int
+  /// MEGA_MENU or ARTICLE_LIST
+  banner_type        BannerType
+  aps2024_banners    aps2024_banners    @relation(fields: [id_banner], references: [id_banner], onDelete: Cascade)
+  aps2024_categories aps2024_categories @relation(fields: [id_categorie], references: [id_categorie], onDelete: Cascade)
+
+  @@id([id_banner, id_categorie])
+}
+
+model aps2024_home_gallery {
+  id_home_gallery        BigInt           @id @default(autoincrement())
+  id_session             BigInt
+  id_user                Int
+  alias                  String           @unique
+  is_watermarked         Boolean
+  name                   String
+  is_publish             Boolean          @default(false)
+  description            String
+  created_by             String
+  created_date           DateTime         @default(now()) @db.Timestamptz(3)
+  modified_by            String?
+  modified_date          DateTime?        @db.Timestamptz(3)
+  publish_by             String?
+  unpublish_by           String?
+  publish_date           DateTime?        @db.Timestamptz(3)
+  publish_down           DateTime?        @db.Timestamptz(3)
+  featured_image_id      BigInt           @unique
+  credit                String?
+  /// Position to be assigned when published
+  next_position          Int?             @unique
+  /// Current pinned position (only for published videos)
+  position               Int?             @unique
+  views                                  Int                                @default(0)
+  aps2024_featured_image aps2024_images   @relation("FeaturedImage", fields: [featured_image_id], references: [id_image], map: "aps2024_featured_image")
+  aps2024_users          aps2024_users    @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_images         aps2024_images[] @relation("HomeGalleryImages")
+
+    @@index([is_publish, position])
+  @@index([is_publish, publish_date(sort: Desc)])
+}
+
+model aps2024_gallery {
+  id_gallery            BigInt                  @id @default(autoincrement())
+  name                  String
+  created_date          DateTime                @default(now()) @db.Timestamptz(3)
+  created_by            String
+  modified_date         DateTime?               @db.Timestamptz(3)
+  modified_by           String?
+  is_watermarked        Boolean
+  description           String
+  id_user               Int
+  id_session            BigInt
+  aps2024_articles      aps2024_articles[]
+  aps2024_users         aps2024_users           @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_gallery_image aps2024_gallery_image[]
+
+}
+
+model aps2024_gallery_image {
+  id_gallery      BigInt
+  id_image        BigInt
+  aps2024_gallery aps2024_gallery @relation(fields: [id_gallery], references: [id_gallery], onDelete: Cascade, onUpdate: NoAction)
+  aps2024_images  aps2024_images  @relation(fields: [id_image], references: [id_image], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_gallery, id_image])
+}
+
+model aps2024_image_index {
+  id_image       BigInt
+  id_index       BigInt
+  aps2024_images aps2024_images @relation(fields: [id_image], references: [id_image], onDelete: Cascade, onUpdate: NoAction)
+  aps2024_index  aps2024_index  @relation(fields: [id_index], references: [id_index], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_index, id_image])
+}
+
+model aps2024_images {
+  id_image              BigInt                  @id @default(autoincrement())
+  name                  String
+  url                   String
+  created_by            String
+  created_date          DateTime                @default(now()) @db.Timestamptz(3)
+  description           String
+  id_session            BigInt
+  modified_by           String?
+  modified_date         DateTime?               @db.Timestamptz(3)
+  source                Int
+  id_user               Int
+  credit                String?
+  /// Now optional, an image may or may not be linked to a gallery
+  id_home_gallery       BigInt?
+  id_cahier             BigInt?       
+  aps2024_cahiers_aps   aps2024_cahiers_aps? @relation(fields: [id_cahier], references: [id_cahier], onDelete: Cascade,onUpdate: NoAction)
+  aps2024_articles      aps2024_articles[]
+  aps2024_banners       aps2024_banners[]
+  aps2024_dossiers      aps2024_dossiers[]
+  aps2024_gallery_image aps2024_gallery_image[]
+  aps2024_featured_in   aps2024_home_gallery?   @relation("FeaturedImage")
+  aps2024_image_index   aps2024_image_index[]
+  aps2024_home_gallery  aps2024_home_gallery?   @relation("HomeGalleryImages", fields: [id_home_gallery], references: [id_home_gallery], onDelete: Cascade, map: "aps2024_home_gallery")
+  aps2024_users         aps2024_users           @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+  aps2024_infographies  aps2024_infographies[]
+  aps2024_videos        aps2024_videos[]
+
+  @@unique([id_home_gallery, id_image])
+}
+
+model aps2024_index {
+  id_index            BigInt                @id @default(autoincrement())
+  name                String                @unique
+  created_date        DateTime              @default(now()) @db.Timestamptz(3)
+  created_by          String
+  aps2024_image_index aps2024_image_index[]
+}
+
+model aps2024_privileges {
+  id_privileges            Int                        @id @default(autoincrement())
+  name                     String                     @unique @db.VarChar(30)
+  description              String?
+  aps2024_roles_privileges aps2024_roles_privileges[]
+}
+
+model aps2024_roles {
+  id_role                  Int                        @id @default(autoincrement())
+  name                     String                     @unique @db.VarChar(30)
+  description              String?
+  created_by               String
+  created_date             DateTime                   @default(now()) @db.Timestamptz(3)
+  modified_by              String?
+  modified_date            DateTime?                  @db.Timestamptz(3)
+  unchangeable             Boolean                    @default(false)
+  aps2024_roles_privileges aps2024_roles_privileges[]
+  aps2024_user_role        aps2024_user_role[]
+}
+
+model aps2024_roles_privileges {
+  id_role            Int
+  id_privileges      Int
+  aps2024_privileges aps2024_privileges @relation(fields: [id_privileges], references: [id_privileges], onDelete: Cascade, onUpdate: NoAction, map: "aps2024_roles_privileges_id_privileges_foreign")
+  aps2024_roles      aps2024_roles      @relation(fields: [id_role], references: [id_role], onDelete: Cascade, onUpdate: NoAction, map: "aps2024_roles_privileges_id_role_foreign")
+
+  @@id([id_privileges, id_role])
+}
+
+model aps2024_sessions {
+  id_session    BigInt        @id @default(autoincrement())
+  id_user       Int
+  adresse_ip    String        @db.VarChar(100)
+  is_active     Boolean
+  login_date    DateTime      @default(now()) @db.Timestamptz(3)
+  logout_date   DateTime?     @db.Timestamptz(3)
+  aps2024_users aps2024_users @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction, map: "aps2024_sessions_id_user_foreign")
+
+  @@unique([id_session, id_user, is_active])
+}
+
+model aps2024_tag {
+  id_tag              BigInt                @id @default(autoincrement())
+  id_session          BigInt
+  name                String                @unique
+  created_date        DateTime              @default(now()) @db.Timestamptz(3)
+  modified_date       DateTime?             @db.Timestamptz(3)
+  modified_by         String?
+  alias               String                @unique
+  created_by          String
+  id_user             Int
+  aps2024_article_tag aps2024_article_tag[]
+  aps2024_users       aps2024_users         @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model aps2024_user_role {
+  id_user       Int
+  id_role       Int
+  assigned_date DateTime      @default(now()) @db.Timestamptz(3)
+  assigned_by   String
+  isInterim Boolean   @default(false)
+  endDate   DateTime? @db.Timestamptz(3)
+  aps2024_roles aps2024_roles @relation(fields: [id_role], references: [id_role], onDelete: Cascade)
+  aps2024_users aps2024_users @relation(fields: [id_user], references: [id_user])
+
+  @@id([id_user, id_role])
+}
+
+model aps2024_users {
+  id_user               Int                     @id @default(autoincrement())
+  first_name            String?
+  last_name             String?
+  username              String                  @unique @db.VarChar(30)
+  birth_day             DateTime?               @db.Date
+  phone_number          String?
+  post                  String?
+  email                 String                  @unique @db.VarChar(30)
+  password              String                  @db.VarChar(60)
+  state                 Int                     @default(1) @db.SmallInt
+  register_date         DateTime                @default(now()) @db.Timestamptz(3)
+  blocked_date          DateTime?               @db.Timestamptz(3)
+  desactivate_date      DateTime?               @db.Timestamptz(3)
+  otpkey                Int?
+  otpTime               DateTime?               @db.Timestamptz(3)
+  login_attempts        Int                     @default(0)
+  deactivated_by        String?
+  modified_by           String?
+  modified_date         DateTime?               @db.Timestamptz(3)
+  register_by           String
+  unblocked_by          String?
+  unblocked_date        DateTime?               @db.Timestamptz(3)
+  activate_by           String?
+  activate_date         DateTime?               @db.Timestamptz(3)
+  lastvisit_date        DateTime?               @db.Timestamptz(3)
+  block_code            Int?
+  aps2024_articles      aps2024_articles[]
+  aps2024_banners       aps2024_banners[]
+  aps2024_cahiers_aps   aps2024_cahiers_aps[]
+  aps2024_categories    aps2024_categories[]
+  aps2024_dossiers      aps2024_dossiers[]
+  aps2024_gallery       aps2024_gallery[]
+  aps2024_home_gallery  aps2024_home_gallery[]
+  aps2024_images        aps2024_images[]
+  aps2024_infographies  aps2024_infographies[]
+  aps2024_sessions      aps2024_sessions[]
+  aps2024_subCategories aps2024_subCategories[]
+  aps2024_tag           aps2024_tag[]
+  aps2024_user_role     aps2024_user_role[]
+  aps2024_videos        aps2024_videos[]
+
+  aps2024_emergency_bands aps2024_emergency_bands[]
+
+  aps2024_subscriber aps2024_subscriber[]
+}
+
+model aps2024_emergency_bands {
+  id_emergency_bands        BigInt                      @id @default(autoincrement())
+  id_session                BigInt
+  title                     String
+  id_user                   Int
+  click_url                 String?
+  type                      Boolean                     @default(false)
+  is_publish                Boolean                     @default(false)
+  created_date              DateTime                    @default(now()) @db.Timestamptz(3)
+  created_by                String
+  modified_date             DateTime?                   @db.Timestamptz(3)
+  modified_by               String?
+  publish_date              DateTime?                   @db.Timestamptz(3)
+  publish_by                String?
+  publish_down              DateTime?                   @db.Timestamptz(3)
+  unpublish_by              String?
+
+  aps2024_users             aps2024_users               @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+}
+
+
+model aps2024_subscriber {
+  id_subscriber         Int                     @id @default(autoincrement())
+  id_user               Int                    
+  first_name            String?
+  last_name             String?
+  username              String                  @unique @db.VarChar(30)
+  phone_number          String?
+  email                 String                  @unique @db.VarChar(30)
+  password              String                  @db.VarChar(60)
+  state                 Int                     @default(1) @db.SmallInt
+  otpkey                Int?
+  otpTime               DateTime?               @db.Timestamptz(3)
+  login_attempts        Int                     @default(0)
+  register_by           String
+  register_date         DateTime                @default(now()) @db.Timestamptz(3)
+  activate_by           String?
+  activate_date         DateTime?               @db.Timestamptz(3)
+  deactivated_by        String?
+  desactivate_date      DateTime?               @db.Timestamptz(3)
+  modified_by           String?
+  modified_date         DateTime?               @db.Timestamptz(3)
+  block_code            Int?
+  blocked_date          DateTime?               @db.Timestamptz(3)
+  unblocked_by          String?
+  unblocked_date        DateTime?               @db.Timestamptz(3)
+  lastvisit_date        DateTime?               @db.Timestamptz(3)
+
+  aps2024_users             aps2024_users               @relation(fields: [id_user], references: [id_user], onDelete: NoAction, onUpdate: NoAction)
+}
+
+
+
+/// Banner Type Enum
+enum BannerType {
+  MEGA_MENU
+  ARTICLE_LIST
+}
+
+
+model aps2024_forbiddenword {
+  id        Int      @id @default(autoincrement())
+  word      String   @unique
+  created_date              DateTime                    @default(now()) @db.Timestamptz(3)
+  created_by                String
+}
